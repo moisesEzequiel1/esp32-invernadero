@@ -90,11 +90,8 @@ double readmoist(byte pin, float airvalue, float watervalue, float min=0, float 
   double ADC_VAL = analogRead(pin);
   pinMode(pin, INPUT_PULLDOWN);
   double mapvalue = fmap(ADC_VAL, airvalue, watervalue, min, max);
-  if(mapvalue < min){
-    mapvalue = 0 ;
-  }
   if(mapvalue > max){
-    mapvalue = 100 ;
+    mapvalue = 0 ;
   }
   return mapvalue; 
 }
@@ -150,7 +147,7 @@ void loop() {
 //   Wide range of temp./humidity measurement
 // -19.9 to 60.0℃ / 0.0 to 99.9%RH
   // sensore de humedad y temperatura 
-  double objt4 = read420ma(39, 819,  4095, 0, 99.9);
+  double objt4 = read420ma(36, 819,  4095, 0, 99.9);
   double objt5 = read420ma(39, 819, 4095, -19.9, 60);
 
   // Pines de control de los ventiladores 
