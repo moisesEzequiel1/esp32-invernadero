@@ -4,8 +4,8 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-#define LOWVALUE_SENSOR 1970
-#define HIGHVALUE_SENSOR 3450 
+#define WATERVALUE_SENSOR 1970
+#define AIRVALUE_SENSOR 3450 
 struct vent {
   byte pina1;
   byte pina2;
@@ -79,30 +79,31 @@ void reconnect() {
     }
   }
 }
-double readadc(byte pin, float highinterval, float lowinternval){
-  double ADC_VAL = analogRead(pin);
-  double mapvalue = map(ADC_VAL, highinterval, lowinternval, 0, 100);
-  return mapvalue; 
+
+
+float fmap(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-double readadc420ma(byte pin, float lowinterval, float highinterval, float min, float max){
+
+double readmoist(byte pin, float airvalue, float watervalue, float min=0, float max=100){
   double ADC_VAL = analogRead(pin);
   pinMode(pin, INPUT_PULLDOWN);
-  double mapvalue = map(ADC_VAL, lowinterval, highinterval, min, max);
+  double mapvalue = fmap(ADC_VAL, airvalue, watervalue, min, max);
+  if(mapvalue < min){
+    mapvalue = 0 ;
+  }
+  if(mapvalue > max){
+    mapvalue = 100 ;
+  }
   return mapvalue; 
 }
-double sensorinit(byte analogpin){
-  pinMode(analogpin, INPUT_PULLDOWN);
-  double sensor_value = readadc(analogpin, HIGHVALUE_SENSOR, LOWVALUE_SENSOR);
-  return sensor_value; 
-
-  
+double read420ma(byte pin, float lowinterval, float highinterval, float min, float max){
+  double ADC_VAL = analogRead(pin);
+  pinMode(pin, INPUT_PULLDOWN);
+  double mapvalue = fmap(ADC_VAL, lowinterval, highinterval, min, max);
+  return mapvalue; 
 }
-// double sensorinit_currentsensors(byte analogpin){
-//   pinMode(analogpin, INPUT_PULLDOWN);
-//   double sensor_value = readadc(analogpin, );
-
-// }
-
 
 void configVents(struct vent p){
   pinMode(p.pina1, OUTPUT);
@@ -137,10 +138,10 @@ void loop() {
   client.loop();
 
   // lectura de los sensores de humedad de suelo 
-  double objt = sensorinit(33);
-  double objt2 = sensorinit(32);
-  double objt3 = sensorinit(35);
-  
+  double objt =  readmoist(33, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
+  double objt2 = readmoist(32, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
+  double objt3 = readmoist(35, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
+
 //   It transmits current temperature/humidity to other devices(PC, recorder, etc.) and outputs DC4-20mA.
 // It outputs DC4mA at -19.9℃ of temperature and 0%RH of humidity, DC20mA at 60℃ of temperature and 99.9%RH of
 // humidity. The temperature and humidity output are separated and the resolution is divisible by 1,000.
@@ -149,13 +150,9 @@ void loop() {
 //   Wide range of temp./humidity measurement
 // -19.9 to 60.0℃ / 0.0 to 99.9%RH
   // sensore de humedad y temperatura 
-  double objt4 = readadc420ma(39, 4095, 819, 0, 99);
-  double objt5 = readadc420ma(39, 4095, 819, -19.9, 60);
+  double objt4 = read420ma(39, 819,  4095, 0, 99.9);
+  double objt5 = read420ma(39, 819, 4095, -19.9, 60);
 
-  
-
-  
-  
   // Pines de control de los ventiladores 
   // 23,22,1,3
   digitalWrite(23, LOW);
