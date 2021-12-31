@@ -4,18 +4,11 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-#define WATERVALUE_SENSOR 1970
-#define AIRVALUE_SENSOR 3450 
+#define WATERVALUE_SENSOR 1290
+#define AIRVALUE_SENSOR 3150
 struct vent {
   byte pina1;
   byte pina2;
-  char descripcion[100];
-};
-
-struct sensor {
-  byte pina;
-  byte low;
-  byte high;
   char descripcion[100];
 };
 
@@ -86,18 +79,19 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max)
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-double readmoist(byte pin, float airvalue, float watervalue, float min=0, float max=100){
+double readmoist(byte pin, float watervalue, float airvalue, float min=0, float max=100){
   double ADC_VAL = analogRead(pin);
-  pinMode(pin, INPUT_PULLDOWN);
   double mapvalue = fmap(ADC_VAL, airvalue, watervalue, min, max);
-  if(mapvalue > max){
-    mapvalue = 0 ;
+  if (mapvalue < 0){
+    mapvalue = 0;
+  }
+  if (mapvalue > 100){
+    mapvalue = 100;
   }
   return mapvalue; 
 }
 double read420ma(byte pin, float lowinterval, float highinterval, float min, float max){
   double ADC_VAL = analogRead(pin);
-  pinMode(pin, INPUT_PULLDOWN);
   double mapvalue = fmap(ADC_VAL, lowinterval, highinterval, min, max);
   return mapvalue; 
 }
@@ -112,12 +106,13 @@ void setup() {
   Serial.begin(9600);
 
 
+  pinMode(17, OUTPUT);
   struct vent p1;
   p1.pina1 = 23;
   p1.pina2 = 22;
   struct vent p2;
-  p2.pina1 = 1;
-  p2.pina2 = 3;
+  p2.pina1 = 21;
+  p2.pina2 = 19;
 
   
   configVents(p1);
@@ -135,9 +130,9 @@ void loop() {
   client.loop();
 
   // lectura de los sensores de humedad de suelo 
-  double objt =  readmoist(33, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
-  double objt2 = readmoist(32, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
-  double objt3 = readmoist(35, AIRVALUE_SENSOR, WATERVALUE_SENSOR);
+  double objt =  readmoist(33,  WATERVALUE_SENSOR, AIRVALUE_SENSOR);
+  double objt2 = readmoist(32, WATERVALUE_SENSOR, AIRVALUE_SENSOR);
+  double objt3 = readmoist(35, WATERVALUE_SENSOR, AIRVALUE_SENSOR);
 
 //   It transmits current temperature/humidity to other devices(PC, recorder, etc.) and outputs DC4-20mA.
 // It outputs DC4mA at -19.9℃ of temperature and 0%RH of humidity, DC20mA at 60℃ of temperature and 99.9%RH of
@@ -146,21 +141,19 @@ void loop() {
 
 //   Wide range of temp./humidity measurement
 // -19.9 to 60.0℃ / 0.0 to 99.9%RH
-  // sensore de humedad y temperatura 
-  double objt4 = read420ma(36, 819,  4095, 0, 99.9);
-  double objt5 = read420ma(39, 819, 4095, -19.9, 60);
+  // sensore de humedad y temperatura //
+
+  // .115v from 4ma 
+  // 3.2v from 20ma
+  double objt4 = read420ma(39, 142,  3970, 0, 99.9);
+  double objt5 = read420ma(36, 142, 3970, -19.9, 60);
 
   // Pines de control de los ventiladores 
   // 23,22,1,3
   digitalWrite(23, LOW);
   digitalWrite(22, LOW);
-  digitalWrite(01, LOW);
-  digitalWrite(3, LOW);
-  // Pines disponibles para distintos menesteres 
-  digitalWrite(21, HIGH);
-  digitalWrite(19, HIGH);
-  digitalWrite(18, HIGH);
-  digitalWrite(5, HIGH);
+  digitalWrite(21, LOW);
+  digitalWrite(19, LOW);
   // Control de la bomba pin no 17 esp32
   digitalWrite(17, LOW);   
   
