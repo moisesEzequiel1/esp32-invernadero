@@ -4,7 +4,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-#define WATERVALUE_SENSOR 1290
+#define WATERVALUE_SENSOR 1500
 #define AIRVALUE_SENSOR 3150
 struct vent {
   byte pina1;
@@ -36,9 +36,21 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  int UpCount = 0;
+  int WLcount = 0;
+  while (WiFi.status() != WL_CONNECTED && WLcount < 200 ){
+    delay( 500 );
+     Serial.printf(".");
+    if (UpCount >= 60){
+      UpCount = 0;
+      Serial.printf("\n");
+    }
+    ++UpCount;
+    ++WLcount;
+  }
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.println("Impossible reconnecting to WiFi, rebooting device!");
+    ESP.restart();
   }
 
   randomSeed(micros());
